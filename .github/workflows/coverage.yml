@@ -1,0 +1,97 @@
+name: Coverage Check
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  coverage-diff:
+    name: Coverage Diff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Get base branch coverage
+        run: |
+          git checkout ${{ github.base_ref }}
+          
+          # Smart contracts
+          cd smart-contract-tests
+          forge coverage --report summary > ../base-coverage.txt
+          cd ..
+          
+          # API
+          cd api-test
+          pip install -r requirements.txt
+          pytest --cov=. --cov-report=term > ../base-api-coverage.txt || true
+          cd ..
+
+      - name: Get PR branch coverage
+        run: |
+          git checkout ${{ github.head_ref }}
+          
+          # Smart contracts
+          cd smart-contract-tests
+          forge coverage --report summary > ../pr-coverage.txt
+          cd ..
+          
+          # API
+          cd api-test
+          pytest --cov=. --cov-report=term > ../pr-api-coverage.txt || true
+          cd ..
+
+      - name: Calculate coverage diff
+        id: diff
+        run: |
+          echo "## Coverage Comparison" > coverage-comment.txt
+          echo "" >> coverage-comment.txt
+          
+          # Parse smart contract coverage
+          BASE_SC=$(grep "Total" base-coverage.txt | awk '{print $4}' | sed 's/%//' || echo "0")
+          PR_SC=$(grep "Total" pr-coverage.txt | awk '{print $4}' | sed 's/%//' || echo "0")
+          DIFF_SC=$(echo "$PR_SC - $BASE_SC" | bc)
+          
+          echo "### Smart Contracts" >> coverage-comment.txt
+          echo "- Base: $BASE_SC%" >> coverage-comment.txt
+          echo "- PR: $PR_SC%" >> coverage-comment.txt
+          echo "- Diff: $DIFF_SC%" >> coverage-comment.txt
+          echo "" >> coverage-comment.txt
+          
+          # Check if coverage decreased
+          if (( $(echo "$DIFF_SC < 0" | bc -l) )); then
+            echo "❌ **Coverage decreased!**" >> coverage-comment.txt
+            echo "coverage_decreased=true" >> $GITHUB_OUTPUT
+          else
+            echo "✅ Coverage maintained or improved" >> coverage-comment.txt
+            echo "coverage_decreased=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment PR
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const fs = require('fs');
+            const comment = fs.readFileSync('coverage-comment.txt', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: comment
+            });
+
+      - name: Fail if coverage decreased
+        if: steps.diff.outputs.coverage_decreased == 'true'
+        run: |
+          echo "❌ Coverage decreased - please add tests"
+          exit 1

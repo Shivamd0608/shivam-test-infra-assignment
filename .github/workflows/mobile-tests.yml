@@ -1,0 +1,114 @@
+name: Mobile E2E Tests
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'mobile-tests/**'
+      - '.github/workflows/mobile-tests.yml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'mobile-tests/**'
+
+jobs:
+  maestro-cloud:
+    name: Maestro Cloud Tests
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Run tests on Maestro Cloud
+        env:
+          MAESTRO_CLOUD_API_KEY: ${{ secrets.MAESTRO_CLOUD_API_KEY }}
+        run: |
+          cd mobile-tests
+          maestro cloud \
+            --apiKey $MAESTRO_CLOUD_API_KEY \
+            --app ../mobile-app/app-release.apk \
+            --android-api-level 31 \
+            maestro/
+        continue-on-error: true
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: maestro-results
+          path: mobile-tests/maestro-results/
+
+  validate-flows:
+    name: Validate Maestro Flows
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Maestro CLI
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      - name: Validate all flows
+        run: |
+          cd mobile-tests/maestro
+          for flow in *.yaml; do
+            echo "Validating $flow..."
+            maestro test --dry-run "$flow"
+          done
+
+      - name: Check flow coverage
+        run: |
+          cd mobile-tests/maestro
+          FLOW_COUNT=$(ls -1 *.yaml | wc -l)
+          echo "Found $FLOW_COUNT test flows"
+          if [ "$FLOW_COUNT" -lt 4 ]; then
+            echo "⚠️  Less than 4 test flows found"
+            exit 1
+          fi
+          echo "✅ Sufficient test coverage"
+
+  detox-tests:
+    name: Detox Tests (Alternative)
+    runs-on: macos-latest
+    if: false  # Enable when Detox is set up
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          cd mobile-tests/detox
+          npm install
+
+      - name: Install Detox CLI
+        run: npm install -g detox-cli
+
+      - name: Build iOS app
+        run: |
+          cd mobile-app/ios
+          pod install
+          cd ../..
+          detox build --configuration ios.debug
+
+      - name: Run Detox tests
+        run: |
+          cd mobile-tests/detox
+          detox test --configuration ios.debug --record-logs all
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: detox-artifacts
+          path: mobile-tests/detox/artifacts/
