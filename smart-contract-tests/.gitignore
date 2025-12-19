@@ -1,0 +1,20 @@
+# Foundry
+out/
+cache/
+lib/
+broadcast/
+
+# Environment
+.env
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Node / Python (future use)
+node_modules/
+venv/
+__pycache__/
+.pytest_cache/
+*.pyc
