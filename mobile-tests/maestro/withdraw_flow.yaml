@@ -1,0 +1,65 @@
+appId: com.tmvault.app
+---
+# Withdraw flow test
+
+- launchApp
+- waitForAnimationToEnd
+
+# Navigate to vault position
+- tapOn: "Portfolio"
+- waitForAnimationToEnd
+- assertVisible: "Your Positions"
+
+- tapOn: "TM Stable Vault"
+- waitForAnimationToEnd
+
+# View position details
+- assertVisible: "Current Balance"
+- assertVisible: "Earned Yield"
+
+# Start withdraw
+- tapOn: "Withdraw"
+- waitForAnimationToEnd
+
+# Enter withdraw amount
+- tapOn:
+    id: "withdraw_amount_input"
+- inputText: "50"
+- hideKeyboard
+
+# Use max button test
+- tapOn: "Max"
+- waitForAnimationToEnd
+- assertVisible: "All available shares"
+
+# Change to specific amount
+- tapOn:
+    id: "withdraw_amount_input"
+- clearText
+- inputText: "25"
+- hideKeyboard
+
+# Review withdraw details
+- assertVisible: "25"
+- assertVisible: "You will receive"
+
+# Confirm withdrawal
+- tapOn: "Confirm Withdraw"
+- waitForAnimationToEnd
+
+# Wait for transaction
+- assertVisible:
+    text: "Processing withdrawal"
+    timeout: 5000
+
+- waitForAnimationToEnd:
+    timeout: 60000
+
+# Assert success
+- assertVisible:
+    text: "Withdrawal Successful|Funds transferred"
+    timeout: 60000
+    
+- takeScreenshot: screenshots/withdraw_success.png
+
+- tapOn: "Done"

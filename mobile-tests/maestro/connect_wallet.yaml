@@ -1,0 +1,31 @@
+appId: com.tmvault.app
+---
+- launchApp
+- tapOn: "Connect Wallet"
+- waitForAnimationToEnd
+- tapOn: "WalletConnect"
+- waitForAnimationToEnd:
+    timeout: 10000
+    
+# Mock wallet connection or use testnet
+- tapOn: "MetaMask"
+- waitForAnimationToEnd
+
+# Approve connection (if using real wallet)
+- tapOn: 
+    text: "Connect"
+    optional: true
+    
+# Return to app
+- pressKey: back
+- waitForAnimationToEnd
+
+# Assertions
+- assertVisible: "0x[a-fA-F0-9]{40}"
+- assertVisible: 
+    text: "USDC Balance"
+- assertVisible:
+    text: "Connected"
+
+# Take screenshot for verification
+- takeScreenshot: screenshots/wallet_connected.png

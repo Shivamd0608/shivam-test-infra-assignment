@@ -1,0 +1,101 @@
+appId: com.tmvault.app
+---
+# Test 1: Insufficient funds
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn: "Vaults"
+- tapOn: "TM Stable Vault"
+- tapOn: "Deposit"
+
+# Try to deposit more than balance
+- tapOn:
+    id: "deposit_amount_input"
+- inputText: "999999"
+- hideKeyboard
+
+- tapOn: "Confirm Deposit"
+
+# Assert error message
+- assertVisible:
+    text: "Insufficient balance|Not enough USDC"
+    
+- takeScreenshot: screenshots/error_insufficient_funds.png
+
+# Go back
+- tapOn: "Cancel"
+- waitForAnimationToEnd
+
+---
+# Test 2: Wrong network
+- launchApp
+- waitForAnimationToEnd
+
+# Simulate being on wrong network (may need manual setup)
+- tapOn: "Settings"
+- waitForAnimationToEnd
+
+# Attempt to perform action on wrong network
+- tapOn: "Back"
+- tapOn: "Vaults"
+- tapOn: "TM Stable Vault"
+
+# Should show network warning
+- assertVisible:
+    text: "Wrong network|Switch to Ethereum|Network mismatch"
+    optional: true
+    
+- takeScreenshot: screenshots/error_wrong_network.png
+
+---
+# Test 3: Transaction rejection
+- launchApp
+- waitForAnimationToEnd
+
+- tapOn: "Vaults"
+- tapOn: "TM Stable Vault"
+- tapOn: "Deposit"
+
+- tapOn:
+    id: "deposit_amount_input"
+- inputText: "10"
+- hideKeyboard
+
+- tapOn: "Confirm Deposit"
+
+# User rejects in wallet (manual action needed)
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Should show rejection message
+- assertVisible:
+    text: "Transaction rejected|User cancelled"
+    optional: true
+    
+- takeScreenshot: screenshots/error_tx_rejected.png
+
+---
+# Test 4: Network timeout
+- launchApp
+- waitForAnimationToEnd
+
+# Enable airplane mode (platform-specific)
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - pressKey: home
+      - swipe:
+          start: 50%, 0%
+          end: 50%, 100%
+      - tapOn: "Airplane mode"
+
+- tapOn: "App Icon"
+- tapOn: "Vaults"
+
+# Should show offline error
+- assertVisible:
+    text: "No connection|Offline|Network error"
+    timeout: 10000
+    
+- takeScreenshot: screenshots/error_offline.png

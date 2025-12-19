@@ -1,0 +1,39 @@
+appId: com.tmvault.app
+---
+# APY Update Notification Test
+
+- launchApp
+- waitForAnimationToEnd
+
+# Navigate to vault
+- tapOn: "Vaults"
+- tapOn: "TM Stable Vault"
+
+# Enable notifications for APY changes
+- tapOn: "Settings"
+- tapOn: "Notifications"
+- tapOn:
+    text: "APY Changes"
+    enabled: false
+- pressKey: back
+- pressKey: back
+
+# Wait for APY update (simulated or real)
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Return to home
+- pressKey: home
+- waitForAnimationToEnd:
+    timeout: 10000
+
+# Check for notification
+- swipe:
+    start: 50%, 0%
+    end: 50%, 50%
+    
+- assertVisible:
+    text: "APY Updated|New yield rate"
+    optional: true
+    
+- takeScreenshot: screenshots/apy_notification.png

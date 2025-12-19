@@ -1,0 +1,72 @@
+appId: com.tmvault.app
+---
+# Prerequisites: Wallet already connected with USDC balance
+
+- launchApp
+- waitForAnimationToEnd
+
+# Ensure wallet is connected
+- assertVisible: "Connected"
+
+# Navigate to Stable vault
+- tapOn: "Vaults"
+- waitForAnimationToEnd
+- tapOn: "TM Stable Vault"
+- waitForAnimationToEnd
+
+# View vault details
+- assertVisible: "Total Value Locked"
+- assertVisible: "Current APY"
+
+# Start deposit flow
+- tapOn: "Deposit"
+- waitForAnimationToEnd
+
+# Enter deposit amount
+- tapOn:
+    id: "deposit_amount_input"
+- inputText: "100"
+- hideKeyboard
+
+# Review deposit details
+- assertVisible: "100 USDC"
+- assertVisible: "Estimated shares"
+
+# Check if approval is needed
+- runFlow:
+    when:
+      visible: "Approve USDC"
+    commands:
+      - tapOn: "Approve USDC"
+      - waitForAnimationToEnd:
+          timeout: 30000
+      - assertVisible: 
+          text: "Approved"
+          timeout: 30000
+
+# Confirm deposit
+- tapOn: "Confirm Deposit"
+- waitForAnimationToEnd
+
+# Wait for transaction
+- assertVisible:
+    text: "Transaction Pending"
+    timeout: 5000
+    
+- waitForAnimationToEnd:
+    timeout: 60000
+
+# Assert success
+- assertVisible:
+    text: "Deposit Successful|Transaction Confirmed"
+    timeout: 60000
+
+# Verify balance updated
+- assertVisible: "New Balance"
+
+# Take screenshot
+- takeScreenshot: screenshots/deposit_success.png
+
+# Return to home
+- tapOn: "Done"
+- waitForAnimationToEnd
